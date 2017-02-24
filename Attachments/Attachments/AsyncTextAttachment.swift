@@ -13,35 +13,35 @@ import MobileCoreServices
 @objc public protocol AsyncTextAttachmentDelegate
 {
 	/// Called when the image has been loaded
-	func textAttachmentDidLoadImage(textAttachment: AsyncTextAttachment, displaySizeChanged: Bool)
+	func textAttachmentDidLoadImage(_ textAttachment: AsyncTextAttachment, displaySizeChanged: Bool)
 }
 
 /// An image text attachment that gets loaded from a remote URL
-public class AsyncTextAttachment: NSTextAttachment
+open class AsyncTextAttachment: NSTextAttachment
 {
 	/// Remote URL for the image
-	public var imageURL: NSURL?
+	open var imageURL: URL?
 
 	/// To specify an absolute display size.
-	public var displaySize: CGSize?
+	open var displaySize: CGSize?
 	
 	/// if determining the display size automatically this can be used to specify a maximum width. If it is not set then the text container's width will be used
-	public var maximumDisplayWidth: CGFloat?
+	open var maximumDisplayWidth: CGFloat?
 
 	/// A delegate to be informed of the finished download
-	public weak var delegate: AsyncTextAttachmentDelegate?
+	open weak var delegate: AsyncTextAttachmentDelegate?
 	
 	/// Remember the text container from delegate message, the current one gets updated after the download
 	weak var textContainer: NSTextContainer?
 	
 	/// The download task to keep track of whether we are already downloading the image
-	private var downloadTask: NSURLSessionDataTask!
+	fileprivate var downloadTask: URLSessionDataTask!
 	
 	/// The size of the downloaded image. Used if we need to determine display size
-	private var originalImageSize: CGSize?
+	fileprivate var originalImageSize: CGSize?
 	
 	/// Designated initializer
-	public init(imageURL: NSURL? = nil, delegate: AsyncTextAttachmentDelegate? = nil)
+	public init(imageURL: URL? = nil, delegate: AsyncTextAttachmentDelegate? = nil)
 	{
 		self.imageURL = imageURL
 		self.delegate = delegate
@@ -53,7 +53,7 @@ public class AsyncTextAttachment: NSTextAttachment
 		fatalError("init(coder:) has not been implemented")
 	}
 	
-	override public var image: UIImage? {
+	override open var image: UIImage? {
 		didSet {
 			originalImageSize = image?.size
 		}
@@ -61,14 +61,14 @@ public class AsyncTextAttachment: NSTextAttachment
 	
 	// MARK: - Helpers
 	
-	private func startAsyncImageDownload()
+	fileprivate func startAsyncImageDownload()
 	{
-		guard let imageURL = imageURL where contents == nil && downloadTask == nil else
+		guard let imageURL = imageURL, contents == nil && downloadTask == nil else
 		{
 			return
 		}
 		
-		downloadTask = NSURLSession.sharedSession().dataTaskWithURL(imageURL) { (data, response, error) in
+		downloadTask = URLSession.shared.dataTask(with: imageURL, completionHandler: { (data, response, error) in
 			
 			defer
 			{
@@ -76,7 +76,7 @@ public class AsyncTextAttachment: NSTextAttachment
 				self.downloadTask = nil
 			}
 			
-			guard let data = data where error == nil else {
+			guard let data = data, error == nil else {
 				print(error?.localizedDescription)
 				return
 			}
@@ -85,8 +85,8 @@ public class AsyncTextAttachment: NSTextAttachment
 			
 			self.contents = data
 			
-			let ext = imageURL.pathExtension!
-			if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext, nil)
+			let ext = imageURL.pathExtension
+			if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext as CFString, nil)
 			{
 				self.fileType = uti.takeRetainedValue() as String
 			}
@@ -103,7 +103,7 @@ public class AsyncTextAttachment: NSTextAttachment
 				self.originalImageSize = imageSize
 			}
 			
-			dispatch_async(dispatch_get_main_queue()) {
+			DispatchQueue.main.async {
 				
 				// tell layout manager so that it should refresh
 				if displaySizeChanged
@@ -118,16 +118,16 @@ public class AsyncTextAttachment: NSTextAttachment
 				// notify the optional delegate
 				self.delegate?.textAttachmentDidLoadImage(self, displaySizeChanged: displaySizeChanged)
 			}
-		}
+		}) 
 		
 		downloadTask.resume()
 	}
 	
-	public override func imageForBounds(imageBounds: CGRect, textContainer: NSTextContainer?, characterIndex charIndex: Int) -> UIImage?
+	open override func image(forBounds imageBounds: CGRect, textContainer: NSTextContainer?, characterIndex charIndex: Int) -> UIImage?
 	{
 		if let image = image { return image }
 		
-		guard let contents = contents, image = UIImage(data: contents) else
+		guard let contents = contents, let image = UIImage(data: contents) else
 		{
 			// remember reference so that we can update it later
 			self.textContainer = textContainer
@@ -141,11 +141,11 @@ public class AsyncTextAttachment: NSTextAttachment
 	}
 	
 	
-	public override func attachmentBoundsForTextContainer(textContainer: NSTextContainer?, proposedLineFragment lineFrag: CGRect, glyphPosition position: CGPoint, characterIndex charIndex: Int) -> CGRect
+	open override func attachmentBounds(for textContainer: NSTextContainer?, proposedLineFragment lineFrag: CGRect, glyphPosition position: CGPoint, characterIndex charIndex: Int) -> CGRect
 	{
 		if let displaySize = displaySize
 		{
-			return CGRect(origin: CGPointZero, size: displaySize)
+			return CGRect(origin: CGPoint.zero, size: displaySize)
 		}
 		
 		if let imageSize = originalImageSize
@@ -153,9 +153,9 @@ public class AsyncTextAttachment: NSTextAttachment
 			let maxWidth = maximumDisplayWidth ?? lineFrag.size.width
 			let factor = maxWidth / imageSize.width
 			
-			return CGRect(origin: CGPointZero, size:CGSize(width: Int(imageSize.width * factor), height: Int(imageSize.height * factor)))
+			return CGRect(origin: CGPoint.zero, size:CGSize(width: Int(imageSize.width * factor), height: Int(imageSize.height * factor)))
 		}
 		
-		return CGRectZero
+		return CGRect.zero
 	}
 }

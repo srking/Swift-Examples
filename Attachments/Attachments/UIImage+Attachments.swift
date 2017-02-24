@@ -10,17 +10,17 @@ import UIKit
 
 extension UIImage
 {
-    static func placeholder(color: UIColor, size: CGSize) -> UIImage
+    static func placeholder(_ color: UIColor, size: CGSize) -> UIImage
     {
         UIGraphicsBeginImageContextWithOptions(size, false, 0)
         
         color.setFill()
-        UIBezierPath(rect: CGRect(origin: CGPointZero, size: size)).fill()
+        UIBezierPath(rect: CGRect(origin: CGPoint.zero, size: size)).fill()
         
         let image = UIGraphicsGetImageFromCurrentImageContext()
         
         UIGraphicsEndImageContext()
         
-        return image
+        return image!
     }
 }

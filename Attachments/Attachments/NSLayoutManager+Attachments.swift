@@ -11,7 +11,7 @@ import UIKit
 extension NSLayoutManager
 {
 	/// Determine the character ranges for an attachment
-	private func rangesForAttachment(attachment: NSTextAttachment) -> [NSRange]?
+	fileprivate func rangesForAttachment(_ attachment: NSTextAttachment) -> [NSRange]?
 	{
 		guard let attributedString = self.textStorage else
 		{
@@ -23,9 +23,9 @@ extension NSLayoutManager
 		
 		var refreshRanges = [NSRange]()
 		
-		attributedString.enumerateAttribute(NSAttachmentAttributeName, inRange: range, options: []) { (value, effectiveRange, nil) in
+		attributedString.enumerateAttribute(NSAttachmentAttributeName, in: range, options: []) { (value, effectiveRange, nil) in
 			
-			guard let foundAttachment = value as? NSTextAttachment where foundAttachment == attachment else
+			guard let foundAttachment = value as? NSTextAttachment, foundAttachment == attachment else
 			{
 				return
 			}
@@ -51,12 +51,12 @@ extension NSLayoutManager
 		}
 		
 		// invalidate the display for the corresponding ranges
-		ranges.reverse().forEach { (range) in
+		ranges.reversed().forEach { (range) in
 			
-			self.invalidateLayoutForCharacterRange(range, actualCharacterRange: nil)
+			self.invalidateLayout(forCharacterRange: range, actualCharacterRange: nil)
 			
 			// also need to trigger re-display or already visible images might not get updated
-			self.invalidateDisplayForCharacterRange(range)
+			self.invalidateDisplay(forCharacterRange: range)
 		}
 	}
 	
@@ -69,9 +69,9 @@ extension NSLayoutManager
 		}
 		
 		// invalidate the display for the corresponding ranges
-		ranges.reverse().forEach { (range) in
+		ranges.reversed().forEach { (range) in
 			
-			self.invalidateDisplayForCharacterRange(range)
+			self.invalidateDisplay(forCharacterRange: range)
 		}
 	}
 }
